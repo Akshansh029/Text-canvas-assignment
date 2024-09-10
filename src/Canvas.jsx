@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import Draggable from "react-draggable";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
@@ -11,33 +11,33 @@ const TextCanvas = () => {
   const [selectedFont, setSelectedFont] = useState("Arial");
   const [selectedFontSize, setSelectedFontSize] = useState("16px");
   const [editorContent, setEditorContent] = useState("");
-  const undoStack = useRef([]);
-  const redoStack = useRef([]);
+  const undoHistory = useRef([]);
+  const redoHistory = useRef([]);
 
   const toolbarOptions = [["bold", "italic", "underline"], [{ align: [] }]];
 
   const addText = () => {
     const newText = {
-      content: "Placeholder Text",
+      content: "Text",
       font: selectedFont,
       size: selectedFontSize,
       position: { x: 0, y: 0 },
     };
 
-    undoStack.current.push([...texts.map((text) => ({ ...text }))]); // deep clone
+    undoHistory.current.push([...texts.map((text) => ({ ...text }))]);
     setTexts([...texts, newText]);
-    redoStack.current = [];
+    redoHistory.current = [];
   };
 
   const updateText = (index, updatedContent) => {
     const newTexts = texts.map((text, idx) =>
       idx === index ? { ...text, content: updatedContent } : text
     );
-    undoStack.current.push([...texts.map((text) => ({ ...text }))]); // deep clone
+    undoHistory.current.push([...texts.map((text) => ({ ...text }))]);
     setTexts(newTexts);
   };
 
-  const handleEdit = (index) => {
+  const editText = (index) => {
     setEditingIndex(index);
     setEditorContent(texts[index].content);
   };
@@ -51,11 +51,11 @@ const TextCanvas = () => {
   };
 
   const removeTexts = () => {
-    undoStack.current.push([...texts.map((text) => ({ ...text }))]); // deep clone
+    undoHistory.current.push([...texts.map((text) => ({ ...text }))]); // deep clone
     setTexts([]);
     setEditorContent("");
     localStorage.removeItem("texts");
-    redoStack.current = [];
+    redoHistory.current = [];
   };
 
   const handleFontChange = (e) => setSelectedFont(e.target.value);
@@ -65,23 +65,23 @@ const TextCanvas = () => {
     const newTexts = texts.map((text, idx) =>
       idx === index ? { ...text, position: { x: data.x, y: data.y } } : text
     );
-    undoStack.current.push([...texts.map((text) => ({ ...text }))]); // deep clone
+    undoHistory.current.push([...texts.map((text) => ({ ...text }))]); // deep clone
     setTexts(newTexts);
-    redoStack.current = [];
+    redoHistory.current = [];
   };
 
   const undo = () => {
-    if (undoStack.current.length > 0) {
-      redoStack.current.push([...texts.map((text) => ({ ...text }))]); // deep clone
-      const previousState = undoStack.current.pop();
+    if (undoHistory.current.length > 0) {
+      redoHistory.current.push([...texts.map((text) => ({ ...text }))]); // deep clone
+      const previousState = undoHistory.current.pop();
       setTexts(previousState);
     }
   };
 
   const redo = () => {
-    if (redoStack.current.length > 0) {
-      undoStack.current.push([...texts.map((text) => ({ ...text }))]); // deep clone
-      const nextState = redoStack.current.pop();
+    if (redoHistory.current.length > 0) {
+      undoHistory.current.push([...texts.map((text) => ({ ...text }))]); // deep clone
+      const nextState = redoHistory.current.pop();
       setTexts(nextState);
     }
   };
@@ -89,7 +89,6 @@ const TextCanvas = () => {
   return (
     <div className="w-full h-screen flex flex-col gap-6 items-center justify-center">
       <h1 className="font-mono text-4xl font-bold">Canvas Assignment</h1>
-      {/* Box-shaped container */}
       <div className="border-2 border-gray-300 w-[75%] h-3/4 relative flex flex-col">
         <div className="flex gap-2 items-center justify-center w-full h-12 bg-gray-300">
           <button
@@ -113,7 +112,7 @@ const TextCanvas = () => {
             <p className="text-black text-xs font-semibold">Redo</p>
           </button>
         </div>
-        {/* Canvas at the top */}
+
         <div className="flex-grow border-b-2 border-gray-300 p-2 bg-neutral-500 w-full text-white">
           {texts.map((text, index) => (
             <Draggable
@@ -124,7 +123,7 @@ const TextCanvas = () => {
               <div
                 className="absolute cursor-pointer"
                 style={{ fontFamily: text.font, fontSize: text.size }}
-                onDoubleClick={() => handleEdit(index)}
+                onDoubleClick={() => editText(index)}
               >
                 <div dangerouslySetInnerHTML={{ __html: text.content }} />
               </div>
@@ -132,9 +131,7 @@ const TextCanvas = () => {
           ))}
         </div>
 
-        {/* Bottom controls section */}
         <div className="p-4 bg-gray-300 flex items-center justify-between">
-          {/* Add Text Button */}
           <button
             onClick={addText}
             className="px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded mr-2 w-[9rem]"
@@ -142,7 +139,6 @@ const TextCanvas = () => {
             Add Text
           </button>
 
-          {/* Font Selector */}
           <select
             onChange={handleFontChange}
             className="border p-2 mr-2 rounded"
@@ -163,7 +159,6 @@ const TextCanvas = () => {
             <option value="Brush Script MT">Brush Script MT</option>
           </select>
 
-          {/* Font Size Selector */}
           <select
             onChange={handleFontSizeChange}
             className="border p-2 mr-2 rounded"
@@ -179,7 +174,6 @@ const TextCanvas = () => {
             <option value="24px">24px</option>
           </select>
 
-          {/* Quill Text Editor */}
           <div className="flex items-center w-full gap-2">
             <ReactQuill
               theme="snow"
